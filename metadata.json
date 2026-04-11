@@ -1,0 +1,5 @@
+{
+  "name": "MCP Control Plane",
+  "description": "A professional admin interface for managing Model Context Protocol (MCP) integrations, tools, and configurations with real-time monitoring and advanced schema management.",
+  "requestFramePermissions": []
+}
