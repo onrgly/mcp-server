@@ -6,57 +6,95 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
   app.use(express.json());
 
-  // API Proxy for Netlify Migration
-  app.get("/api/migrate", async (req, res) => {
-    let baseUrl = process.env.NETLIFY_BASE_URL || "https://mcp.smilecenterturkey.com";
-    const token = process.env.NETLIFY_ADMIN_TOKEN;
-    const baseUrlEnv = process.env.NETLIFY_BASE_URL;
+  // AI Troubleshooting & Analysis
+  app.post("/api/ai/troubleshoot", async (req, res) => {
+    const { errorLog } = req.body;
+    if (!errorLog) return res.status(400).json({ error: "No logs provided" });
     
-    console.log("Migration: Environment check:", {
-      hasToken: !!token,
-      hasBaseUrl: !!baseUrlEnv,
-      allKeys: Object.keys(process.env).filter(k => k.startsWith("NETLIFY"))
-    });
-
-    if (!token) {
-      console.error("Migration Error: NETLIFY_ADMIN_TOKEN is missing in environment.");
-      return res.status(401).json({ error: "NETLIFY_ADMIN_TOKEN not configured in secrets." });
-    }
-
-    // Remove trailing slash from baseUrl if present
-    baseUrl = baseUrl.replace(/\/$/, "");
-
     try {
-      const action = req.query.action || "integrations";
-      const targetUrl = `${baseUrl}/.netlify/functions/admin-api?action=${action}`;
-      
-      console.log(`Migration: Fetching ${action} from ${baseUrl}`);
-      
-      const response = await fetch(targetUrl, {
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: `Analyze this MCP integration error and provide a technical troubleshooting guide: "${errorLog}"`,
+        config: {
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
         }
       });
+      res.json({ suggestion: response.text });
+    } catch (error: any) {
+      res.status(500).json({ error: "AI analysis failed" });
+    }
+  });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Migration: Netlify API returned ${response.status}: ${errorText}`);
-        return res.status(response.status).json({ error: `Netlify API error (${response.status}): ${errorText}` });
-      }
-
-      const data = await response.json();
-      console.log(`Migration: Received data for ${action}:`, JSON.stringify(data).slice(0, 200));
-      res.json(data);
+  app.post("/api/ai/schema", async (req, res) => {
+    const { description } = req.body;
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-pro-preview",
+        contents: `Generate a valid JSON Schema for an MCP tool based on this description: "${description}". 
+        Return ONLY the JSON object, no markdown, no explanation.`,
+        config: {
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+          responseMimeType: "application/json"
+        }
+      });
+      res.json(JSON.parse(response.text || "{}"));
     } catch (error) {
-      console.error("Migration Critical Error:", error);
-      res.status(500).json({ error: "Failed to connect to Netlify. Please check the URL and your internet connection." });
+      res.status(500).json({ error: "Schema generation failed" });
+    }
+  });
+
+  // General API Proxy for Netlify Backend (KB_Retrieval parity)
+  app.all("/api/admin", async (req, res) => {
+    let baseUrl = process.env.NETLIFY_BASE_URL || "https://mcp.smilecenterturkey.com";
+    const token = process.env.NETLIFY_ADMIN_TOKEN;
+    
+    if (!token) {
+      console.error("API Proxy Error: NETLIFY_ADMIN_TOKEN is missing.");
+      return res.status(401).json({ error: "Administration token not configured." });
+    }
+
+    baseUrl = baseUrl.replace(/\/$/, "");
+    const action = req.query.action || "tools";
+    const targetUrl = `${baseUrl}/.netlify/functions/admin-api?${new URLSearchParams(req.query as any).toString()}`;
+    
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout for complex operations
+
+      const response = await fetch(targetUrl, {
+        method: req.method,
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "x-mcp-request-id": (req.headers["x-mcp-request-id"] as string) || crypto.randomUUID()
+        },
+        body: ["POST", "PUT", "PATCH"].includes(req.method) ? JSON.stringify(req.body) : undefined,
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        return res.status(response.status).json(data);
+      } else {
+        const text = await response.text();
+        return res.status(response.status).send(text);
+      }
+    } catch (error: any) {
+      console.error(`Proxy Error (${action}):`, error);
+      res.status(500).json({ error: error.name === 'AbortError' ? "Request timed out" : "Backend connection failed" });
     }
   });
 
