@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MOCK_INTEGRATIONS } from "@/constants";
 import { cn } from "@/lib/utils";
+import { useMCP } from "@/context/MCPContext";
 
 const StatCard = ({ title, value, change, icon: Icon, trend }: any) => (
   <Card className="glass-panel overflow-hidden group border-white/5">
@@ -39,6 +40,9 @@ const StatCard = ({ title, value, change, icon: Icon, trend }: any) => (
 );
 
 export default function Dashboard() {
+  const { integrations } = useMCP();
+  const totalTools = integrations.reduce((acc, curr) => acc + (curr.tools?.length || 0), 0);
+
   return (
     <div className="p-8 space-y-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
@@ -53,8 +57,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Integrations" value={MOCK_INTEGRATIONS.length} change="+2" icon={Blocks} trend="up" />
-        <StatCard title="Active Tools" value="48" change="+5" icon={Code2} trend="up" />
+        <StatCard title="Total Integrations" value={integrations.length} change={`+${integrations.length - MOCK_INTEGRATIONS.length}`} icon={Blocks} trend="up" />
+        <StatCard title="Active Tools" value={totalTools} change="+5" icon={Code2} trend="up" />
         <StatCard title="Request Volume" value="1.2M" change="+12%" icon={Activity} trend="up" />
         <StatCard title="Error Rate" value="0.04%" change="-0.01%" icon={AlertCircle} trend="down" />
       </div>

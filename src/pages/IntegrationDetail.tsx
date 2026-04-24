@@ -41,7 +41,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { MOCK_INTEGRATIONS } from "@/constants";
+import { useMCP } from "@/context/MCPContext";
 import { cn } from "@/lib/utils";
 import SchemaAssistant from "@/components/SchemaAssistant";
 import { MCPTool } from "@/types";
@@ -49,7 +49,8 @@ import { toast } from "sonner";
 
 export default function IntegrationDetail() {
   const { id } = useParams();
-  const [integration, setIntegration] = useState(MOCK_INTEGRATIONS.find(i => i.id === id));
+  const { integrations, updateIntegration } = useMCP();
+  const integration = integrations.find(i => i.id === id);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedTool, setSelectedTool] = useState<MCPTool | null>(null);
   const [isToolEditorOpen, setIsToolEditorOpen] = useState(false);
@@ -87,20 +88,30 @@ export default function IntegrationDetail() {
   };
 
   const handleSaveTool = () => {
-    if (!selectedTool) return;
+    if (!selectedTool || !integration) return;
     
-    setIntegration(prev => {
-      if (!prev) return prev;
-      const toolExists = prev.tools.find(t => t.id === selectedTool.id);
-      const updatedTools = toolExists 
-        ? prev.tools.map(t => t.id === selectedTool.id ? selectedTool : t)
-        : [...prev.tools, selectedTool];
-      
-      return { ...prev, tools: updatedTools, toolCount: updatedTools.length };
+    const toolExists = integration.tools.find(t => t.id === selectedTool.id);
+    const updatedTools = toolExists 
+      ? integration.tools.map(t => t.id === selectedTool.id ? selectedTool : t)
+      : [...integration.tools, selectedTool];
+    
+    updateIntegration(integration.id, { 
+      tools: updatedTools, 
+      toolCount: updatedTools.length 
     });
     
     setIsToolEditorOpen(false);
-    toast.success("Tool configuration saved locally");
+    toast.success("Tool configuration saved");
+  };
+
+  const handleDeleteTool = (toolId: string) => {
+    if (!integration) return;
+    const updatedTools = integration.tools.filter(t => t.id !== toolId);
+    updateIntegration(integration.id, { 
+      tools: updatedTools, 
+      toolCount: updatedTools.length 
+    });
+    toast.success("Tool deleted");
   };
 
   return (

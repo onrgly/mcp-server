@@ -42,15 +42,24 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { MOCK_INTEGRATIONS } from "@/constants";
+import { useMCP } from "@/context/MCPContext";
 import { toast } from "sonner";
 import { MCPIntegration } from "@/types";
+import { Label } from "@/components/ui/label";
 
 export default function IntegrationsList() {
-  const [integrations, setIntegrations] = useState<MCPIntegration[]>(MOCK_INTEGRATIONS);
+  const { integrations, setIntegrations, addIntegration } = useMCP();
   const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationError, setMigrationError] = useState<string | null>(null);
   const [migrationStep, setMigrationStep] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [migratedData, setMigratedData] = useState<any>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newIntegration, setNewIntegration] = useState({
+    name: '',
+    id: '',
+    url: '',
+    authType: 'none' as const
+  });
 
   const applyMigration = () => {
     if (!migratedData) return;
@@ -75,26 +84,85 @@ export default function IntegrationsList() {
     toast.success(`Successfully migrated ${newIntegrations.length} integrations!`);
   };
 
+  const handleAddIntegration = () => {
+    if (!newIntegration.name || !newIntegration.id) {
+      toast.error("Name and ID are required");
+      return;
+    }
+
+    const integration: MCPIntegration = {
+      ...newIntegration,
+      description: "Manually added integration",
+      status: 'enabled',
+      toolCount: 0,
+      updatedAt: new Date().toISOString(),
+      serverUrl: newIntegration.url,
+      config: {},
+      tools: []
+    };
+
+    addIntegration(integration);
+    setIsAddDialogOpen(false);
+    setNewIntegration({ name: '', id: '', url: '', authType: 'none' });
+    toast.success("Integration added successfully");
+  };
+
   const handleMigration = async () => {
     setIsMigrating(true);
     setMigrationStep('fetching');
+    setMigrationError(null);
     
     try {
       // Fetch integrations
       const intResponse = await fetch("/api/migrate?action=integrations");
-      if (!intResponse.ok) throw new Error("Failed to fetch integrations");
-      const integrations = await intResponse.json();
+      const intContentType = intResponse.headers.get("content-type");
+      
+      if (!intResponse.ok) {
+        if (intContentType && intContentType.includes("application/json")) {
+          const errData = await intResponse.json();
+          throw new Error(errData.error || `Server error (${intResponse.status})`);
+        } else {
+          const text = await intResponse.text();
+          throw new Error(`Server returned non-JSON error (${intResponse.status}): ${text.slice(0, 100)}...`);
+        }
+      }
+      
+      if (!intContentType || !intContentType.includes("application/json")) {
+        throw new Error("Server did not return JSON for integrations. Ensure the backend is running correctly.");
+      }
+      const rawIntegrations = await intResponse.json();
+      const integrations = Array.isArray(rawIntegrations) 
+        ? rawIntegrations 
+        : (rawIntegrations.integrations || rawIntegrations.data || []);
 
       // Fetch tools
       const toolsResponse = await fetch("/api/migrate?action=tools");
-      if (!toolsResponse.ok) throw new Error("Failed to fetch tools");
-      const tools = await toolsResponse.json();
+      const toolsContentType = toolsResponse.headers.get("content-type");
+      
+      if (!toolsResponse.ok) {
+        if (toolsContentType && toolsContentType.includes("application/json")) {
+          const errData = await toolsResponse.json();
+          throw new Error(errData.error || `Server error (${toolsResponse.status})`);
+        } else {
+          const text = await toolsResponse.text();
+          throw new Error(`Server returned non-JSON error (${toolsResponse.status}): ${text.slice(0, 100)}...`);
+        }
+      }
+
+      if (!toolsContentType || !toolsContentType.includes("application/json")) {
+        throw new Error("Server did not return JSON for tools. Ensure the backend is running correctly.");
+      }
+      const rawTools = await toolsResponse.json();
+      const tools = Array.isArray(rawTools) 
+        ? rawTools 
+        : (rawTools.tools || rawTools.data || []);
 
       setMigratedData({ integrations, tools });
       setMigrationStep('success');
       toast.success("Migration data fetched successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      setMigrationError(error.message);
       setMigrationStep('error');
       toast.error("Migration failed. Check your token and base URL.");
     } finally {
@@ -146,24 +214,57 @@ export default function IntegrationsList() {
 
                 {migrationStep === 'success' && migratedData && (
                   <div className="space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                    <div className="flex items-center gap-3 p-3 bg-green-500/10 border border-green-200 rounded-lg text-green-700">
-                      <CheckCircle2 className="w-5 h-5" />
+                    <div className={`flex items-center gap-3 p-3 rounded-lg border ${
+                      (migratedData.integrations?.length || 0) + (migratedData.tools?.length || 0) === 0
+                        ? "bg-yellow-500/10 border-yellow-200 text-yellow-700"
+                        : "bg-green-500/10 border-green-200 text-green-700"
+                    }`}>
+                      {(migratedData.integrations?.length || 0) + (migratedData.tools?.length || 0) === 0 ? (
+                        <AlertTriangle className="w-5 h-5" />
+                      ) : (
+                        <CheckCircle2 className="w-5 h-5" />
+                      )}
                       <div className="text-sm font-medium">
                         Found {migratedData.integrations?.length || 0} integrations and {migratedData.tools?.length || 0} tools.
                       </div>
                     </div>
+                    
+                    {(migratedData.integrations?.length || 0) + (migratedData.tools?.length || 0) === 0 && (
+                      <div className="p-3 bg-yellow-500/5 border border-yellow-200/50 rounded-lg text-xs text-yellow-800 space-y-2">
+                        <p className="font-semibold">Troubleshooting Tips:</p>
+                        <ul className="list-disc list-inside space-y-1 opacity-80">
+                          <li>Check for typos in Secret names (e.g., <code className="bg-yellow-100 px-1">NETLIFY_ADMIN_TOKEN</code>).</li>
+                          <li>Ensure the <code className="bg-yellow-100 px-1">NETLIFY_BASE_URL</code> is correct and reachable.</li>
+                          <li>Verify that your Netlify instance actually has integrations configured.</li>
+                        </ul>
+                      </div>
+                    )}
+
                     <div className="text-xs text-muted-foreground">
-                      Click "Apply Migration" to merge this data into your local environment.
+                      { (migratedData.integrations?.length || 0) + (migratedData.tools?.length || 0) === 0 
+                        ? "No data found to migrate. Please check your configuration."
+                        : "Click \"Apply Migration\" to merge this data into your local environment."
+                      }
                     </div>
                   </div>
                 )}
 
                 {migrationStep === 'error' && (
-                  <div className="flex items-center gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
-                    <AlertTriangle className="w-5 h-5" />
-                    <div className="text-sm font-medium">
-                      Connection failed. Please verify your <code className="bg-destructive/10 px-1 rounded">NETLIFY_ADMIN_TOKEN</code> in the Secrets panel.
+                  <div className="flex flex-col gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
+                    <div className="flex items-center gap-3">
+                      <AlertTriangle className="w-5 h-5" />
+                      <div className="text-sm font-medium">
+                        Connection failed.
+                      </div>
                     </div>
+                    {migrationError && (
+                      <p className="text-xs font-mono bg-black/20 p-2 rounded break-all">
+                        {migrationError}
+                      </p>
+                    )}
+                    <p className="text-[10px] opacity-80">
+                      Please verify your <code className="bg-destructive/10 px-1 rounded">NETLIFY_ADMIN_TOKEN</code> and <code className="bg-destructive/10 px-1 rounded">NETLIFY_BASE_URL</code> in the Secrets panel and ensure you clicked "Apply changes".
+                    </p>
                   </div>
                 )}
               </div>
@@ -184,10 +285,55 @@ export default function IntegrationsList() {
             </DialogContent>
           </Dialog>
 
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Integration
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="w-4 h-4" />
+                Add Integration
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Integration</DialogTitle>
+                <DialogDescription>
+                  Manually connect a new Model Context Protocol server.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input 
+                    id="name" 
+                    placeholder="e.g. My Custom Service" 
+                    value={newIntegration.name}
+                    onChange={e => setNewIntegration(prev => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="id">Integration ID</Label>
+                  <Input 
+                    id="id" 
+                    placeholder="e.g. custom-service" 
+                    value={newIntegration.id}
+                    onChange={e => setNewIntegration(prev => ({ ...prev, id: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="url">Server URL</Label>
+                  <Input 
+                    id="url" 
+                    placeholder="https://api.example.com/mcp" 
+                    value={newIntegration.url}
+                    onChange={e => setNewIntegration(prev => ({ ...prev, url: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleAddIntegration}>Add Integration</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
