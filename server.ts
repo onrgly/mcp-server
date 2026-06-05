@@ -98,6 +98,99 @@ async function startServer() {
     }
   });
 
+  // Playground Run API Proxy (Secures provider keys server-side & binds Gemini)
+  app.post("/api/playground-run", async (req, res) => {
+    const { systemPrompt, developerPrompt, userPrompt, messages, settings, tools, variables } = req.body;
+    
+    // 1. Substitute input variables
+    let interpolatedUser = userPrompt || "";
+    if (variables && typeof variables === "object") {
+      for (const [key, val] of Object.entries(variables)) {
+        interpolatedUser = interpolatedUser.replace(new RegExp(`{{\\s*${key}\\s*}}`, "g"), String(val));
+      }
+    }
+    
+    // 2. Formulate consolidated System directives
+    let finalSystem = systemPrompt || "";
+    if (developerPrompt) {
+      finalSystem += "\n\nDEVELOPER DIRECTIVES:\n" + developerPrompt;
+    }
+    
+    if (tools && Array.isArray(tools) && tools.length > 0) {
+      finalSystem += "\n\nACTIVE BOUND MCP TOOLS DEFINITION:\n" + JSON.stringify(tools, null, 2);
+    }
+    
+    try {
+      const start = Date.now();
+      
+      // Determine model to execute
+      let targetModel = "gemini-2.5-flash"; // Default highly-performant fallback
+      if (settings?.provider === "Gemini" && settings?.model) {
+        targetModel = settings.model;
+      }
+      
+      const response = await ai.models.generateContent({
+        model: targetModel,
+        contents: [
+          ...(finalSystem ? [
+            { role: "user", parts: [{ text: `[SYSTEM DIRECTIVE AND TOOLS SPECIFICATION]:\n${finalSystem}` }] },
+            { role: "model", parts: [{ text: "System guidelines and active server MCP tools loaded successfully. Ready to interpret parameters." }] }
+          ] : []),
+          ...(messages || []).map((m: any) => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }]
+          })),
+          { role: "user", parts: [{ text: interpolatedUser || "Hello" }] }
+        ],
+        config: {
+          temperature: settings?.temperature ?? 0.3,
+          maxOutputTokens: settings?.maxOutputTokens ?? 800,
+        }
+      });
+      
+      const latency = Date.now() - start;
+      const responseText = response.text || "No response text generated.";
+      
+      // Math metrics (estimated tokens for the developer panel view)
+      const inputChars = (finalSystem.length + (messages || []).reduce((acc: number, m: any) => acc + m.content.length, 0) + interpolatedUser.length);
+      const inputTokens = Math.ceil(inputChars / 4) + 120;
+      const outputTokens = Math.ceil(responseText.length / 4) + 20;
+      const totalTokens = inputTokens + outputTokens;
+      
+      // Cost estimation based on standard proxy models
+      const costEstimate = (inputTokens * 0.000015) + (outputTokens * 0.00006);
+      
+      res.json({
+        ok: true,
+        responseText,
+        metrics: {
+          inputTokens,
+          outputTokens,
+          totalTokens,
+          costEstimate: Number(costEstimate.toFixed(5)),
+          latencyMs: latency,
+        },
+        rawRequestPayload: {
+          model: targetModel,
+          temperature: settings?.temperature ?? 0.3,
+          max_tokens: settings?.maxOutputTokens ?? 800,
+          messages: [
+            { role: "system", content: finalSystem },
+            ...(messages || []).map((x: any) => ({ role: x.role, content: x.content })),
+            { role: "user", content: interpolatedUser }
+          ]
+        },
+        rawResponsePayload: response
+      });
+    } catch (error: any) {
+      console.error("Playground Run Error:", error);
+      res.status(500).json({ 
+        ok: false, 
+        error: error.message || "Model execution failed. Host admin credential check failed." 
+      });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

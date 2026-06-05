@@ -111,12 +111,12 @@ export default function Users() {
           <p className="text-muted-foreground">Manage administrative access to the MCP control panel.</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button className="gap-2 ai-studio-gradient border-none text-white shadow-lg shadow-primary/20">
               <UserPlus className="w-4 h-4" />
               Add User
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create Admin User</DialogTitle>
@@ -244,11 +244,11 @@ export default function Users() {
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger render={
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground group-hover:text-foreground">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
-                        </DropdownMenuTrigger>
+                        } />
                         <DropdownMenuContent align="end" className="w-48 shadow-xl">
                           <DropdownMenuItem className="gap-2">
                             <Edit2 className="w-3.5 h-3.5" /> Edit Profile

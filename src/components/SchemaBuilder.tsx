@@ -127,9 +127,9 @@ interface ParameterRowProps {
 }
 
 const NEON_COLORS = [
-  "#00D2FF", // Level 1: Electric Blue
-  "#9D50BB", // Level 2: Neon Purple
-  "#39FF14", // Level 3: Neon Green
+  "#00E5FF", // Level 1: Electric Blue
+  "#D500F9", // Level 2: Neon Purple
+  "#00FF41", // Level 3: Neon Green
   "#FF007F", // Level 4: Neon Pink
   "#00FFFF", // Level 5: Cyan/Aqua
 ];
@@ -157,28 +157,27 @@ const ParameterRow: React.FC<ParameterRowProps> = ({ parameter, onChange, onDele
 
   return (
     <div className={cn(
-      "group relative transition-all duration-300",
+      "group relative transition-all duration-500",
       depth > 0 && "ml-10"
     )}>
       {/* Visual Guide System */}
       {depth > 0 && (
-        <>
+        <div className="absolute left-0 top-0 bottom-0 pointer-events-none overflow-visible z-20">
           {/* Cumulative Vertical Parent Lines */}
           {Array.from({ length: depth }).map((_, i) => {
             const level = i + 1;
             const color = getLineColor(level);
-            // Calibrated offset to align lines perfectly across depths
             const offset = (depth - level) * 40 + 20; 
             
             return (
               <div 
                 key={level}
-                className="absolute -top-4 -bottom-4 w-[2.5px] transition-all duration-500"
+                className="absolute top-[-50px] bottom-[-30px] w-[3px] transition-all duration-700"
                 style={{ 
                   left: `-${offset}px`,
                   backgroundColor: color,
-                  boxShadow: `0 0 12px ${color}33, 0 0 3px ${color}`,
-                  opacity: level === depth ? 1 : 0.15
+                  boxShadow: `0 0 15px ${color}66, 0 0 5px ${color}`,
+                  opacity: level === depth ? 1 : 0.3
                 }}
               />
             );
@@ -186,25 +185,28 @@ const ParameterRow: React.FC<ParameterRowProps> = ({ parameter, onChange, onDele
           
           {/* Connecting "Elbow" for the current level */}
           <div 
-            className="absolute -left-5 top-0 w-5 h-12 border-b-[2.5px] border-l-[2.5px] rounded-bl-2xl transition-all duration-500"
+            className="absolute top-0 border-b-[3px] border-l-[3px] rounded-bl-[20px] transition-all duration-700"
             style={{ 
+              left: "-20px",
+              width: "20px",
+              height: "2.5rem",
               borderColor: getLineColor(depth),
-              boxShadow: `inset 2px -2px 10px ${getLineColor(depth)}11`,
+              boxShadow: `inset 4px -4px 12px ${getLineColor(depth)}33`,
             }}
           />
-        </>
+        </div>
       )}
 
       <div className={cn(
-        "relative rounded-[24px] border-2 border-border bg-card/50 backdrop-blur-md shadow-lg overflow-hidden group-hover:border-primary/40 transition-all duration-500",
-        !isExpanded && "opacity-70 grayscale-[0.2]"
+        "relative rounded-[24px] border border-border bg-card/60 backdrop-blur-md shadow-xl group-hover:border-primary/60 transition-all duration-500",
+        !isExpanded && "opacity-60 grayscale-[0.4]"
       )}>
-        <div className="flex items-center gap-6 p-6 bg-secondary/5">
+        <div className="flex items-center gap-6 p-6 bg-secondary/10 rounded-t-[24px] overflow-hidden">
           <div className="flex items-center gap-5 flex-1 min-w-0">
             <div className="flex flex-col gap-2 flex-1 max-w-[280px]">
               <Label className="text-[11px] font-bold text-muted-foreground px-1">Parameter Name</Label>
               <Input 
-                value={parameter.name}
+                value={parameter.name || ""}
                 placeholder="param_name"
                 className="h-11 font-mono text-sm bg-background border-border focus:ring-primary/20 rounded-xl"
                 onChange={e => onChange({ name: e.target.value })}
@@ -298,7 +300,7 @@ const ParameterRow: React.FC<ParameterRowProps> = ({ parameter, onChange, onDele
               <div className="md:col-span-8 space-y-2">
                 <Label className="text-xs font-bold text-foreground">Description</Label>
                 <Input 
-                  value={parameter.description}
+                  value={parameter.description || ""}
                   placeholder="Detailed explanation of this input..."
                   className="h-11 text-sm bg-background border-border rounded-xl shadow-inner px-4 overflow-hidden"
                   onChange={e => onChange({ description: e.target.value })}
@@ -388,7 +390,7 @@ const ParameterRow: React.FC<ParameterRowProps> = ({ parameter, onChange, onDele
 
             {/* Recursive Object Properties */}
             {parameter.type === 'object' && (
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6 pt-4 ml-6 border-l border-border/10 pl-6">
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h5 className="text-sm font-bold text-primary flex items-center gap-2">
                     <Braces className="w-4 h-4" />
@@ -437,7 +439,7 @@ const ParameterRow: React.FC<ParameterRowProps> = ({ parameter, onChange, onDele
 
             {/* Recursive Array Object Properties */}
             {parameter.type === 'array' && parameter.itemsType === 'object' && (
-              <div className="space-y-6 pt-4">
+              <div className="space-y-6 pt-4 ml-6 border-l border-border/10 pl-6">
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <h5 className="text-sm font-bold text-primary flex items-center gap-2">
                     <List className="w-4 h-4" />

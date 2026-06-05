@@ -82,9 +82,9 @@ export default function Dashboard() {
               </CardTitle>
               <CardDescription className="text-xs">Incoming requests and tool executions processed in the last 24h.</CardDescription>
             </div>
-            <Button variant="outline" size="sm" className="text-[10px] font-bold uppercase tracking-widest border-border" asChild>
+            <Button variant="outline" size="sm" className="text-[10px] font-bold uppercase tracking-widest border-border" render={
               <Link to="/logs">Inspect All Logs</Link>
-            </Button>
+            } />
           </CardHeader>
           <CardContent className="p-0">
              <div className="p-6 space-y-6">

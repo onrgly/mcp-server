@@ -105,11 +105,9 @@ export default function IntegrationsList() {
           </Button>
 
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 ai-studio-gradient border-none text-white shadow-lg shadow-primary/20">
-                <Plus className="w-4 h-4" />
-                Add Integration
-              </Button>
+            <DialogTrigger render={<Button className="gap-2 ai-studio-gradient border-none text-white shadow-lg shadow-primary/20" />}>
+              <Plus className="w-4 h-4" />
+              Add Integration
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
@@ -125,7 +123,7 @@ export default function IntegrationsList() {
                     <Input 
                       id="name" 
                       placeholder="e.g. GitHub" 
-                      value={newIntegration.name}
+                      value={newIntegration.name || ''}
                       onChange={e => setNewIntegration(prev => ({ ...prev, name: e.target.value }))}
                       onBlur={() => {
                         if (!newIntegration.id && newIntegration.name) {
@@ -139,7 +137,7 @@ export default function IntegrationsList() {
                     <Input 
                       id="id" 
                       placeholder="e.g. github" 
-                      value={newIntegration.id}
+                      value={newIntegration.id || ''}
                       onChange={e => setNewIntegration(prev => ({ ...prev, id: e.target.value }))}
                     />
                   </div>
@@ -149,14 +147,14 @@ export default function IntegrationsList() {
                   <Input 
                     id="desc" 
                     placeholder="Short summary of this integration" 
-                    value={newIntegration.description}
+                    value={newIntegration.description || ''}
                     onChange={e => setNewIntegration(prev => ({ ...prev, description: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Base Authentication</Label>
                   <Select 
-                    value={newIntegration.auth?.type} 
+                    value={newIntegration.auth?.type || 'none'} 
                     onValueChange={(val: any) => setNewIntegration(prev => ({ ...prev, auth: { type: val } }))}
                   >
                     <SelectTrigger className="bg-secondary/30 border-border">
@@ -283,17 +281,13 @@ export default function IntegrationsList() {
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground group-hover:text-foreground">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
+                        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground group-hover:text-foreground" />}>
+                          <MoreVertical className="w-4 h-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48 shadow-xl">
-                          <DropdownMenuItem asChild>
-                            <Link to={`/integrations/${integration.id}`} className="flex items-center gap-2">
-                              <Settings className="w-3.5 h-3.5" />
-                              Configure Tools
-                            </Link>
+                          <DropdownMenuItem render={<Link to={`/integrations/${integration.id}`} className="flex items-center gap-2" />}>
+                            <Settings className="w-3.5 h-3.5" />
+                            Configure Tools
                           </DropdownMenuItem>
                           <DropdownMenuItem className="flex items-center gap-2" onClick={() => saveIntegration({ ...integration, enabled: integration.enabled === false })}>
                             <Play className="w-3.5 h-3.5" />

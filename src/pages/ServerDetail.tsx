@@ -88,9 +88,7 @@ export default function ServerDetail() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Server className="w-16 h-16 text-muted-foreground opacity-20" />
         <h2 className="text-xl font-bold">Server not found</h2>
-        <Button asChild variant="outline">
-          <Link to="/servers">Back to Servers</Link>
-        </Button>
+        <Button render={<Link to="/servers">Back to Servers</Link>} variant="outline" />
       </div>
     );
   }
@@ -164,9 +162,7 @@ export default function ServerDetail() {
       <div className="bg-card border-b border-border sticky top-0 z-10">
         <div className="px-8 py-4 max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild className="rounded-full">
-              <Link to="/servers"><ChevronLeft className="w-5 h-5" /></Link>
-            </Button>
+            <Button variant="ghost" size="icon" render={<Link to="/servers"><ChevronLeft className="w-5 h-5" /></Link>} className="rounded-full" />
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center border border-primary/20">
                 <Server className="w-5 h-5 text-primary" />
@@ -255,12 +251,12 @@ export default function ServerDetail() {
                       />
                    </div>
                    <Dialog>
-                    <DialogTrigger asChild>
+                    <DialogTrigger render={
                       <Button variant="outline" className="gap-2 border-border bg-secondary/20">
                         <Plus className="w-4 h-4" />
                         Assign Integration
                       </Button>
-                    </DialogTrigger>
+                    } />
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle>Assign Integrations</DialogTitle>
@@ -419,7 +415,7 @@ export default function ServerDetail() {
                       <Label htmlFor="server-name">Server Display Name</Label>
                       <Input 
                         id="server-name" 
-                        value={editName}
+                        value={editName || ""}
                         onChange={e => setEditName(e.target.value)}
                         className="bg-secondary/30 border-border"
                       />

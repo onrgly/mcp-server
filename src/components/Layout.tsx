@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -13,7 +13,8 @@ import {
   Moon,
   Server,
   Lock,
-  Loader2
+  Loader2,
+  Bookmark
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,34 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [tokenInput, setTokenInput] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  const [promptsCount, setPromptsCount] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem("mcp_admin_prompts");
+      return stored ? JSON.parse(stored).length : 3;
+    } catch {
+      return 3;
+    }
+  });
+
+  // Keep prompts badge count synchronized with local storage changes in the UI
+  useEffect(() => {
+    const checkCount = () => {
+      try {
+        const stored = localStorage.getItem("mcp_admin_prompts");
+        if (stored) {
+          setPromptsCount(JSON.parse(stored).length);
+        }
+      } catch {}
+    };
+    checkCount();
+    window.addEventListener("storage", checkCount);
+    const interval = setInterval(checkCount, 1500);
+    return () => {
+      window.removeEventListener("storage", checkCount);
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +182,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <SidebarItem to="/" icon={LayoutDashboard} label={isSidebarCollapsed ? "" : "Dashboard"} />
             <SidebarItem to="/servers" icon={Server} label={isSidebarCollapsed ? "" : "MCP Servers"} badge={isSidebarCollapsed ? undefined : servers.length} />
             <SidebarItem to="/integrations" icon={Blocks} label={isSidebarCollapsed ? "" : "Integrations"} badge={isSidebarCollapsed ? undefined : integrations.length} />
+            <SidebarItem to="/prompts" icon={Bookmark} label={isSidebarCollapsed ? "" : "Prompts"} badge={isSidebarCollapsed ? undefined : promptsCount} />
             <SidebarItem to="/logs" icon={Terminal} label={isSidebarCollapsed ? "" : "Live Logs"} />
           </div>
           

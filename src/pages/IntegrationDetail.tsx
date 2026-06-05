@@ -102,9 +102,7 @@ export default function IntegrationDetail() {
       <div className="p-8 flex flex-col items-center justify-center h-[60vh] space-y-4">
         <AlertCircle className="w-12 h-12 text-muted-foreground opacity-20" />
         <h2 className="text-xl font-semibold">Integration not found</h2>
-        <Button asChild variant="outline">
-          <Link to="/integrations">Back to Integrations</Link>
-        </Button>
+        <Button render={<Link to="/integrations">Back to Integrations</Link>} variant="outline" />
       </div>
     );
   }
@@ -243,9 +241,7 @@ export default function IntegrationDetail() {
       <div className="bg-card border-b border-border sticky top-0 z-10">
         <div className="px-8 py-4 max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild className="rounded-full">
-              <Link to="/integrations"><ArrowLeft className="w-5 h-5" /></Link>
-            </Button>
+            <Button variant="ghost" size="icon" render={<Link to="/integrations"><ArrowLeft className="w-5 h-5" /></Link>} className="rounded-full" />
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-secondary rounded-xl flex items-center justify-center border border-border text-xl">
                 {integration.icon || "🔌"}
@@ -313,7 +309,7 @@ export default function IntegrationDetail() {
                       <Label htmlFor="integ-name">Display Name</Label>
                       <Input 
                         id="integ-name" 
-                        value={editInteg.name} 
+                        value={editInteg.name || ""} 
                         onChange={e => setEditInteg(prev => ({ ...prev, name: e.target.value }))}
                         className="bg-secondary/30 border-border"
                       />
@@ -322,7 +318,7 @@ export default function IntegrationDetail() {
                       <Label htmlFor="integ-icon">Icon Emoji</Label>
                       <Input 
                         id="integ-icon" 
-                        value={editInteg.icon} 
+                        value={editInteg.icon || ""} 
                         onChange={e => setEditInteg(prev => ({ ...prev, icon: e.target.value }))}
                         className="bg-secondary/30 border-border text-center text-xl"
                       />
@@ -334,7 +330,7 @@ export default function IntegrationDetail() {
                       id="integ-desc"
                       rows={3}
                       className="w-full rounded-xl border border-border bg-secondary/30 px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                      value={editInteg.description}
+                      value={editInteg.description || ""}
                       onChange={e => setEditInteg(prev => ({ ...prev, description: e.target.value }))}
                     />
                   </div>
@@ -429,11 +425,11 @@ export default function IntegrationDetail() {
                           {tool.handler === 'api' ? (tool.method || 'GET') : (tool.handler || 'Proxy')}
                         </Badge>
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                          <DropdownMenuTrigger render={
                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-secondary/80" onClick={e => e.stopPropagation()}>
                                 <Settings className="w-3.5 h-3.5 text-muted-foreground" />
                              </Button>
-                          </DropdownMenuTrigger>
+                          } />
                           <DropdownMenuContent align="end" className="rounded-xl shadow-xl border-border">
                             <DropdownMenuItem className="gap-2 font-medium" onClick={e => { e.stopPropagation(); openToolEditor(tool, idx); }}>
                               <Settings2 className="w-4 h-4" /> Edit Capability
@@ -790,7 +786,7 @@ export default function IntegrationDetail() {
                    <div className="space-y-2 col-span-2">
                       <Label className="text-xs font-semibold text-foreground">Tool Name</Label>
                       <Input 
-                        value={selectedTool.name} 
+                        value={selectedTool.name || ""} 
                         className="font-mono bg-background border-border h-11 text-sm focus:ring-primary/20"
                         onChange={e => setSelectedTool({...selectedTool, name: e.target.value})}
                         placeholder="e.g. create_resource"
@@ -819,7 +815,7 @@ export default function IntegrationDetail() {
                  <div className="space-y-2">
                     <Label className="text-xs font-semibold text-foreground">Capability Description</Label>
                     <Input 
-                      value={selectedTool.description} 
+                      value={selectedTool.description || ""} 
                       className="bg-background border-border h-11 text-sm focus:ring-primary/20"
                       onChange={e => setSelectedTool({...selectedTool, description: e.target.value})}
                       placeholder="Explain to the AI exactly when and how to use this tool..."
@@ -860,7 +856,7 @@ export default function IntegrationDetail() {
                             </div>
                             <Input 
                               className="font-mono bg-background border-border h-full text-sm flex-1 focus:ring-primary/20"
-                              value={selectedTool.endpoint} 
+                              value={selectedTool.endpoint || ""} 
                               onChange={e => setSelectedTool({...selectedTool, endpoint: e.target.value})}
                               placeholder="/resource/{id}"
                             />

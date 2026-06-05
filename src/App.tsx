@@ -14,6 +14,8 @@ import ServersList from "./pages/ServersList";
 import ServerDetail from "./pages/ServerDetail";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import PromptsList from "./pages/PromptsList";
+import PromptDetail from "./pages/PromptDetail";
 import { MCPProvider } from "./context/MCPContext";
 
 export default function App() {
@@ -27,6 +29,8 @@ export default function App() {
             <Route path="/servers/:id" element={<ServerDetail />} />
             <Route path="/integrations" element={<IntegrationsList />} />
             <Route path="/integrations/:id" element={<IntegrationDetail />} />
+            <Route path="/prompts" element={<PromptsList />} />
+            <Route path="/prompts/:id" element={<PromptDetail />} />
             <Route path="/logs" element={<Logs />} />
             <Route path="/users" element={<Users />} />
             <Route path="/settings" element={<Settings />} />

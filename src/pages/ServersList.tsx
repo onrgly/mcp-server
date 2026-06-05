@@ -94,12 +94,12 @@ export default function ServersList() {
           <p className="text-muted-foreground">Manage your Model Context Protocol server endpoints.</p>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger render={
             <Button className="gap-2 ai-studio-gradient border-none text-white shadow-lg shadow-primary/20">
               <Plus className="w-4 h-4" />
               New Server
             </Button>
-          </DialogTrigger>
+          } />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Server</DialogTitle>
@@ -113,7 +113,7 @@ export default function ServersList() {
                 <Input 
                   id="name" 
                   placeholder="e.g. My Custom Server" 
-                  value={newServer.name}
+                  value={newServer.name || ""}
                   onChange={e => setNewServer(prev => ({ ...prev, name: e.target.value }))}
                 />
               </div>
@@ -122,7 +122,7 @@ export default function ServersList() {
                 <Input 
                   id="id" 
                   placeholder="Leave empty to auto-generate" 
-                  value={newServer.id}
+                  value={newServer.id || ""}
                   onChange={e => setNewServer(prev => ({ ...prev, id: e.target.value }))}
                 />
               </div>
@@ -256,20 +256,20 @@ export default function ServersList() {
                       </TableCell>
                       <TableCell className="text-right pr-8">
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                          <DropdownMenuTrigger render={
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground group-hover:text-foreground">
                               <MoreVertical className="w-4 h-4" />
                             </Button>
-                          </DropdownMenuTrigger>
+                          } />
                           <DropdownMenuContent align="end" className="w-48 shadow-xl">
                             <DropdownMenuItem className="gap-2" onClick={() => copyConnectionUrl(server)}>
                               <Copy className="w-3.5 h-3.5" /> Copy Connection URL
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2" asChild>
+                            <DropdownMenuItem className="gap-2" render={
                               <Link to={`/servers/${server.id}`}>
                                 <Settings className="w-3.5 h-3.5" /> Configure Endpoint
                               </Link>
-                            </DropdownMenuItem>
+                            } />
                             <DropdownMenuItem className="gap-2" onClick={() => saveServer({ id: server.id, enabled: server.enabled === false })}>
                               {server.enabled !== false ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                               {server.enabled !== false ? "Disable Endpoint" : "Enable Endpoint"}
